@@ -20,23 +20,22 @@ let value = "";
 let currentPage = 1;
 let perPage = 40;
 let lightbox;
-let isLastPage;
 
- function fetchPix(name, page) {
-    const url = `
+
+async function fetchPix(name, page) {
+  const url = `
         ${BASE_URL}?key=${key}&q=${name}&image_type=photo&orientation=horizontal&safesearch=true&page=${page}&per_page=${perPage}
     `;
-  
-     return axios
-       .get(url)
-       .then(response => {
-         const { hits, totalHits } = response.data;
-         const isLastPage = currentPage * perPage >= totalHits;
-         return { images: hits, totalHits };
-       })
-       .catch(error => {
-         throw new Error(`Failed to fetch images: ${error.message}`);
-       });
+  try {
+    
+    const { data: { totalHits, hits } } = await axios.get(url);
+    const isLastPage = currentPage * perPage >= totalHits;
+    const isFirstPage = currentPage === 1;
+      
+    return { images: hits, totalImages: totalHits, isLastPage, isFirstPage };
+  } catch (error) {
+    console.log(error);
+  }
 }
 
 
@@ -115,32 +114,29 @@ function createImageCard(image) {
 async function onLoadMore() {
     currentPage += 1;
     try {
-        const { images } = await fetchPix(value, currentPage);
+      const { images } = await fetchPix(value, currentPage);
+      mapImages(images);
         if (images.length === 0) {
             showLoadMoreButton();
           showEndOfResultsMessage();
+          btnLoadMore.disabled()
           btnLoadMore.hide();
             return;
-        };
-         if (lightbox) {
+        }
+         else if(lightbox) {
            lightbox.refresh();
-      };
-      mapImages(images);
-       if (isLastPage) {
+      }
+      
+      else if(isLastPage) {
+        showLoadMoreButton();
+         btnLoadMore.hide();
          Notiflix.Notify.info(
            "We're sorry, but you've reached the end of search results."
          );
-         btnLoadMore.hide();
+         
        }
       
-      //  const { images: nextImages } = await fetchPix(
-         
-      //    currentPage + 1
-      //  );
-
-      //  if (nextImages.length === 0) {
-      //   btnLoadMore.hide()
-      //  }
+      
 
     }
     catch (error) {
