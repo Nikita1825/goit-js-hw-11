@@ -18,16 +18,20 @@ const key = '36587464-4c7af3360402d576ec8eb9edd';
 
 let value = "";
 let currentPage = 1;
+let perPage = 40;
 let lightbox;
+let isLastPage;
 
-function fetchPix(name, page) {
-    const url = (`
-        ${BASE_URL}?key=${key}&q=${name}&image_type=photo&orientation=horizontal&safesearch=true&page=${page}&per_page=40
-    `);
+ function fetchPix(name, page) {
+    const url = `
+        ${BASE_URL}?key=${key}&q=${name}&image_type=photo&orientation=horizontal&safesearch=true&page=${page}&per_page=${perPage}
+    `;
+  
      return axios
        .get(url)
        .then(response => {
          const { hits, totalHits } = response.data;
+         const isLastPage = currentPage * perPage >= totalHits;
          return { images: hits, totalHits };
        })
        .catch(error => {
@@ -47,24 +51,29 @@ btnLoadMore.addEventListener('click', onLoadMore);
 
 async function onSearch(e) {
     e.preventDefault();
-    clearGallery();
+  clearGallery();
+  
     
-    const searchQuery = e.currentTarget.elements.searchQuery.value.trim();
+  const searchQuery = e.currentTarget.elements.searchQuery.value.trim();
+  if (searchQuery === '') {
+      
+      return;
+  };
+  
     value = searchQuery;
     currentPage = 1;
     try {
-        const { images } = await fetchPix(value, currentPage);
-        if (images.length === 0) {
-          showNoResultsMessage();
-          return
-        };
-        
-        mapImages(images);
-        initializeLightbox();
-        hideLoadMoreButton();
-        
-        
-        
+      const { images } = await fetchPix(value, currentPage);
+      if (images.length === 0) {
+        showNoResultsMessage();
+        return;
+      }
+     
+
+      mapImages(images);
+      initializeLightbox();
+      //  btnLoadMore.show();
+      hideLoadMoreButton();
     } 
     catch (error) {
     console.error(error);
@@ -108,14 +117,31 @@ async function onLoadMore() {
     try {
         const { images } = await fetchPix(value, currentPage);
         if (images.length === 0) {
-            hideLoadMoreButton();
-            showEndOfResultsMessage();
+            showLoadMoreButton();
+          showEndOfResultsMessage();
+          btnLoadMore.hide();
             return;
         };
          if (lightbox) {
            lightbox.refresh();
-         }
-        mapImages(images);
+      };
+      mapImages(images);
+       if (isLastPage) {
+         Notiflix.Notify.info(
+           "We're sorry, but you've reached the end of search results."
+         );
+         btnLoadMore.hide();
+       }
+      
+      //  const { images: nextImages } = await fetchPix(
+         
+      //    currentPage + 1
+      //  );
+
+      //  if (nextImages.length === 0) {
+      //   btnLoadMore.hide()
+      //  }
+
     }
     catch (error) {
         console.error(error);
