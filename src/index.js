@@ -29,7 +29,7 @@ async function fetchPix(name, page) {
   try {
     
     const { data: { totalHits, hits } } = await axios.get(url);
-    const isLastPage = currentPage * perPage >= totalHits;
+    const isLastPage = hits.length < perPage;
     const isFirstPage = currentPage === 1;
       
     return { images: hits, totalImages: totalHits, isLastPage, isFirstPage };
@@ -63,16 +63,18 @@ async function onSearch(e) {
     currentPage = 1;
     try {
       const { images } = await fetchPix(value, currentPage);
+      hideLoadMoreButton();
       if (images.length === 0) {
         showNoResultsMessage();
+        showLoadMoreButton();
+        btnLoadMore.hide();
         return;
-      }
+      };
      
-
       mapImages(images);
       initializeLightbox();
       //  btnLoadMore.show();
-      hideLoadMoreButton();
+      // hideLoadMoreButton();
     } 
     catch (error) {
     console.error(error);
@@ -114,25 +116,26 @@ function createImageCard(image) {
 async function onLoadMore() {
     currentPage += 1;
     try {
-      const { images } = await fetchPix(value, currentPage);
+      const { images, totalImages, isLastPage } = await fetchPix(
+        value,
+        currentPage
+      );
       mapImages(images);
         if (images.length === 0) {
             showLoadMoreButton();
           showEndOfResultsMessage();
-          btnLoadMore.disabled()
+          
           btnLoadMore.hide();
             return;
         }
-         else if(lightbox) {
+         if(lightbox) {
            lightbox.refresh();
       }
       
-      else if(isLastPage) {
-        showLoadMoreButton();
+       if (isLastPage) {
+         showLoadMoreButton();
          btnLoadMore.hide();
-         Notiflix.Notify.info(
-           "We're sorry, but you've reached the end of search results."
-         );
+         showEndOfResultsMessage();
          
        }
       
